@@ -1,7 +1,7 @@
 import numpy as np
 import time
 import cv2
-import pylab
+from matplotlib import pylab
 import os
 import sys
 
