@@ -82,6 +82,11 @@ class getPulseApp(object):
                              "c": self.toggle_cam,
                              "f": self.write_csv}
 
+        # timing data for the main loop
+        self.frame_count = 0
+        self.avg_throughput = 0.0
+        self.avg_latency = 0.0
+
     def toggle_cam(self):
         if len(self.cameras) > 1:
             self.processor.find_faces = True
@@ -170,6 +175,8 @@ class getPulseApp(object):
         """
         # Get current image frame from the camera
         frame = self.cameras[self.selected_cam].get_frame()
+        self.frame_count += 1
+        start_time = start = datetime.datetime.now()
         self.h, self.w, _c = frame.shape
 
         # display unaltered frame
@@ -184,6 +191,17 @@ class getPulseApp(object):
 
         # show the processed/annotated output frame
         imshow("Processed", output_frame)
+
+        end = datetime.datetime.now()
+        time_taken = (end - start).total_seconds()
+        self.avg_latency = ((self.avg_latency * (self.frame_count - 1) + time_taken)
+                            / self.frame_count)
+        throughput = 1 / time_taken if time_taken else 0
+        self.avg_throughput = (self.avg_throughput * (self.frame_count - 1) +
+                               throughput) / self.frame_count
+
+        # Check if a key was pressed
+        self.key_handler()
 
         # create and/or update the raw data display if needed
         if self.bpm_plot:
@@ -209,5 +227,10 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
     App = getPulseApp(args)
-    while True:
-        App.main_loop()
+
+    try:
+        while True:
+            App.main_loop()
+    finally:
+        print('avg_throughput: ', App.avg_throughput)
+        print('avg_latency: ', App.avg_latency)
