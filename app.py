@@ -59,7 +59,7 @@ if __name__ == '__main__':
     pulse_app = getPulseApp(args)
 
     try:
-        app.run(port=8080, debug=True)
+        app.run(host='0.0.0.0', port=8080, debug=True)
     finally:
         print('avg_throughput: ', pulse_app.avg_throughput)
         print('avg_latency: ', pulse_app.avg_latency)
