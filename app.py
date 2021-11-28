@@ -45,6 +45,8 @@ def invocations():
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Webcam pulse detector.')
+    parser.add_argument('serve', default=None,
+                        help='dummy arg used by sagemaker for endpoint deployment')
     parser.add_argument('--serial', default=None,
                         help='serial port destination for bpm data')
     parser.add_argument('--baud', default=None,
