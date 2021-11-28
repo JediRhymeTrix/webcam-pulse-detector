@@ -236,3 +236,5 @@ class findFaceGetPulse(object):
             tsize = 1
             cv2.putText(self.frame_out, text,
                        (int(x - w / 2), int(y)), cv2.FONT_HERSHEY_PLAIN, tsize, col)
+
+            return text

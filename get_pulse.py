@@ -5,10 +5,11 @@ from cv2 import moveWindow
 import argparse
 import numpy as np
 import datetime
-#TODO: work on serial port comms, if anyone asks for it
-#from serial import Serial
+# TODO: work on serial port comms, if anyone asks for it
+# from serial import Serial
 import socket
 import sys
+
 
 class getPulseApp(object):
 
@@ -45,8 +46,8 @@ class getPulseApp(object):
                 ip, port = udp.split(":")
                 port = int(port)
             self.udp = (ip, port)
-            self.sock = socket.socket(socket.AF_INET, # Internet
-                 socket.SOCK_DGRAM) # UDP
+            self.sock = socket.socket(socket.AF_INET,  # Internet
+                                      socket.SOCK_DGRAM)  # UDP
 
         self.cameras = []
         self.selected_cam = 0
@@ -76,7 +77,7 @@ class getPulseApp(object):
         self.plot_title = "Data display - raw signal (top) and PSD (bottom)"
 
         # Maps keystrokes to specified methods
-        #(A GUI window must have focus for these to work)
+        # (A GUI window must have focus for these to work)
         self.key_controls = {"s": self.toggle_search,
                              "d": self.toggle_display_plot,
                              "c": self.toggle_cam,
@@ -112,7 +113,7 @@ class getPulseApp(object):
         Locking the forehead location in place significantly improves
         data quality, once a forehead has been sucessfully isolated.
         """
-        #state = self.processor.find_faces.toggle()
+        # state = self.processor.find_faces.toggle()
         state = self.processor.find_faces_toggle()
         print("face detection lock =", not state)
 
@@ -169,14 +170,17 @@ class getPulseApp(object):
             if chr(self.pressed) == key:
                 self.key_controls[key]()
 
-    def main_loop(self):
+    def main_loop(self, frame=None):
         """
         Single iteration of the application's main loop.
         """
-        # Get current image frame from the camera
-        frame = self.cameras[self.selected_cam].get_frame()
-        self.frame_count += 1
-        start_time = start = datetime.datetime.now()
+        skip_op = False
+
+        if len(frame):
+            skip_op = True
+            # self.processor.find_faces = False
+        else:
+            frame = self.cameras[self.selected_cam].get_frame()
         self.h, self.w, _c = frame.shape
 
         # display unaltered frame
@@ -185,36 +189,37 @@ class getPulseApp(object):
         # set current image frame to the processor's input
         self.processor.frame_in = frame
         # process the image frame to perform all needed analysis
-        self.processor.run(self.selected_cam)
-        # collect the output frame for display
-        output_frame = self.processor.frame_out
+        bpm = self.processor.run(self.selected_cam)
 
-        # show the processed/annotated output frame
-        imshow("Processed", output_frame)
+        if not skip_op:
+            # collect the output frame for display
+            output_frame = self.processor.frame_out
 
-        end = datetime.datetime.now()
-        time_taken = (end - start).total_seconds()
-        self.avg_latency = ((self.avg_latency * (self.frame_count - 1) + time_taken)
-                            / self.frame_count)
-        throughput = 1 / time_taken if time_taken else 0
-        self.avg_throughput = (self.avg_throughput * (self.frame_count - 1) +
-                               throughput) / self.frame_count
+            # show the processed/annotated output frame
+            imshow("Processed", output_frame)
 
-        # Check if a key was pressed
-        self.key_handler()
+            # Check if a key was pressed
+            self.key_handler()
 
-        # create and/or update the raw data display if needed
-        if self.bpm_plot:
-            self.make_bpm_plot()
+            # create and/or update the raw data display if needed
+            if self.bpm_plot:
+                self.make_bpm_plot()
 
-        if self.send_serial:
-            self.serial.write(str(self.processor.bpm) + "\r\n")
+            if self.send_serial:
+                self.serial.write(str(self.processor.bpm) + "\r\n")
 
-        if self.send_udp:
-            self.sock.sendto(str(self.processor.bpm), self.udp)
+            if self.send_udp:
+                self.sock.sendto(str(self.processor.bpm), self.udp)
 
-        # handle any key presses
-        self.key_handler()
+            # handle any key presses
+            self.key_handler()
+        elif set(self.processor.face_rect) != set([1, 1, 2, 2]):
+            # print("face found")
+            # print(self.processor.face_rect)
+            self.processor.find_faces = False
+
+        return bpm
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Webcam pulse detector.')
@@ -230,7 +235,18 @@ if __name__ == "__main__":
 
     try:
         while True:
+            start_time = start = datetime.datetime.now()
+            App.frame_count += 1
+
             App.main_loop()
+
+            end = datetime.datetime.now()
+            time_taken = (end - start).total_seconds()
+            App.avg_latency = ((App.avg_latency * (App.frame_count - 1) + time_taken)
+                               / App.frame_count)
+            throughput = 1 / time_taken if time_taken else 0
+            App.avg_throughput = (App.avg_throughput * (App.frame_count - 1) +
+                                  throughput) / App.frame_count
     finally:
         print('avg_throughput: ', App.avg_throughput)
         print('avg_latency: ', App.avg_latency)
