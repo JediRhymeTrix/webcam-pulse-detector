@@ -1,9 +1,8 @@
-from flask import Flask, request
+from flask import Flask, request, jsonify
 from lib.utils import readb64
 from get_pulse import getPulseApp
 
 import argparse
-import json
 import datetime
 
 
@@ -14,7 +13,7 @@ def get_pulse(frame):
     start_time = start = datetime.datetime.now()
     pulse_app.frame_count += 1
 
-    pulse_app.main_loop(frame)
+    pulse = pulse_app.main_loop(frame)
 
     end = datetime.datetime.now()
     time_taken = (end - start).total_seconds()
@@ -24,29 +23,31 @@ def get_pulse(frame):
     pulse_app.avg_throughput = (pulse_app.avg_throughput * (pulse_app.frame_count - 1) +
                                 throughput) / pulse_app.frame_count
 
+    return pulse if pulse else {'bpm': None, 'text': 'gathering data...'}
+
 
 app = Flask(__name__)
 
 
 @app.route('/ping', methods=['GET'])
 def health():
-    return json.dumps({'error': None})
+    return jsonify({'error': None})
 
 
 @app.route('/invocations', methods=['POST'])
 def invocations():
     data = request.get_json()
-    print(data)
+    # print(data)
     if data['frame']:
-        return json.dumps({"bpm_text": get_pulse(readb64(data['frame']))})
+        return jsonify(get_pulse(readb64(data['frame'])))
     else:
-        return json.dumps({'error': 'unknown action'})
+        return jsonify({'error': 'unknown action'})
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Webcam pulse detector.')
     parser.add_argument('serve', default=None,
-                        help='dummy arg used by sagemaker for endpoint deployment')
+    help='dummy arg used by sagemaker for endpoint deployment')
     parser.add_argument('--serial', default=None,
                         help='serial port destination for bpm data')
     parser.add_argument('--baud', default=None,
