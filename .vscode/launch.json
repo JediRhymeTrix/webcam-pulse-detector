@@ -8,19 +8,13 @@
             "name": "Python: Flask",
             "type": "python",
             "request": "launch",
-            "module": "flask",
-            
-            "env": {
-                "FLASK_APP": "app.py",
-                "FLASK_ENV": "development",
-            },
-            "args": [
-                "run",
-                "--no-debugger",
-                "--port",
-                "8080"
-            ],
-            "jinja": true
+            "module": "app",
+        },
+        {
+            "name": "Python: get_pulse.py",
+            "type": "python",
+            "request": "launch",
+            "module": "get_pulse",
         }
     ]
 }

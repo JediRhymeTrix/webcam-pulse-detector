@@ -176,7 +176,7 @@ class getPulseApp(object):
         """
         skip_op = False
 
-        if len(frame):
+        if frame is not None:
             skip_op = True
             # self.processor.find_faces = False
         else:
@@ -213,10 +213,10 @@ class getPulseApp(object):
 
             # handle any key presses
             self.key_handler()
-        elif set(self.processor.face_rect) != set([1, 1, 2, 2]):
-            # print("face found")
-            # print(self.processor.face_rect)
-            self.processor.find_faces = False
+        # if set(self.processor.face_rect) != set([1, 1, 2, 2]):
+        #     # print("face found")
+        #     # print(self.processor.face_rect)
+        #     self.processor.find_faces = False
 
         return bpm
 

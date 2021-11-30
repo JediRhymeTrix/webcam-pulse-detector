@@ -23,7 +23,7 @@ def get_pulse(frame):
     pulse_app.avg_throughput = (pulse_app.avg_throughput * (pulse_app.frame_count - 1) +
                                 throughput) / pulse_app.frame_count
 
-    return pulse if pulse else {'bpm': None, 'text': 'gathering data...'}
+    return {'bpm': None, 'text': 'gathering data...'}
 
 
 app = Flask(__name__)
@@ -46,8 +46,8 @@ def invocations():
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Webcam pulse detector.')
-    parser.add_argument('serve', default=None,
-    help='dummy arg used by sagemaker for endpoint deployment')
+    parser.add_argument('serve', default=None, nargs='?',
+                        help='dummy arg used by sagemaker for endpoint deployment')
     parser.add_argument('--serial', default=None,
                         help='serial port destination for bpm data')
     parser.add_argument('--baud', default=None,

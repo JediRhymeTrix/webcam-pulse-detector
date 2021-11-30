@@ -34,6 +34,7 @@ class findFaceGetPulse(object):
         self.freqs = []
         self.fft = []
         self.slices = [[0]]
+        self.pvals = 0
         self.t0 = time.time()
         self.bpms = []
         self.bpm = 0
@@ -122,16 +123,16 @@ class findFaceGetPulse(object):
                                                   cv2.COLOR_BGR2GRAY))
         col = (100, 255, 100)
         if self.find_faces:
-            cv2.putText(
-                self.frame_out, "Press 'C' to change camera (current: %s)" % str(
-                    cam),
-                (10, 25), cv2.FONT_HERSHEY_PLAIN, 1.25, col)
-            cv2.putText(
-                self.frame_out, "Press 'S' to lock face and begin",
-                       (10, 50), cv2.FONT_HERSHEY_PLAIN, 1.25, col)
-            cv2.putText(self.frame_out, "Press 'Esc' to quit",
-                       (10, 75), cv2.FONT_HERSHEY_PLAIN, 1.25, col)
-            self.data_buffer, self.times, self.trained = [], [], False
+            # cv2.putText(
+            #     self.frame_out, "Press 'C' to change camera (current: %s)" % str(
+            #         cam),
+            #     (10, 25), cv2.FONT_HERSHEY_PLAIN, 1.25, col)
+            # cv2.putText(
+            #     self.frame_out, "Press 'S' to lock face and begin",
+            #            (10, 50), cv2.FONT_HERSHEY_PLAIN, 1.25, col)
+            # cv2.putText(self.frame_out, "Press 'Esc' to quit",
+            #            (10, 75), cv2.FONT_HERSHEY_PLAIN, 1.25, col)
+            # self.data_buffer, self.times, self.trained = [], [], False
             detected = list(self.face_cascade.detectMultiScale(self.gray,
                                                                scaleFactor=1.3,
                                                                minNeighbors=4,
@@ -146,15 +147,16 @@ class findFaceGetPulse(object):
                     self.face_rect = detected[-1]
             forehead1 = self.get_subface_coord(0.5, 0.18, 0.25, 0.15)
             self.draw_rect(self.face_rect, col=(255, 0, 0))
-            x, y, w, h = self.face_rect
-            cv2.putText(self.frame_out, "Face",
-                       (x, y), cv2.FONT_HERSHEY_PLAIN, 1.5, col)
-            self.draw_rect(forehead1)
-            x, y, w, h = forehead1
-            cv2.putText(self.frame_out, "Forehead",
-                       (x, y), cv2.FONT_HERSHEY_PLAIN, 1.5, col)
-            return
+            # x, y, w, h = self.face_rect
+            # cv2.putText(self.frame_out, "Face",
+            #            (x, y), cv2.FONT_HERSHEY_PLAIN, 1.5, col)
+            # self.draw_rect(forehead1)
+            # x, y, w, h = forehead1
+            # cv2.putText(self.frame_out, "Forehead",
+            #            (x, y), cv2.FONT_HERSHEY_PLAIN, 1.5, col)
+            # return
         if set(self.face_rect) == set([1, 1, 2, 2]):
+            len(self.times) and self.times.pop()
             return
         cv2.putText(
             self.frame_out, "Press 'C' to change camera (current: %s)" % str(
@@ -172,6 +174,10 @@ class findFaceGetPulse(object):
         self.draw_rect(forehead1)
 
         vals = self.get_subface_means(forehead1)
+        if np.isnan(vals):
+            vals = self.pvals
+        else:
+            self.pvals = vals
 
         self.data_buffer.append(vals)
         L = len(self.data_buffer)
@@ -204,7 +210,7 @@ class findFaceGetPulse(object):
             pfreq = freqs[idx]
             self.freqs = pfreq
             self.fft = pruned
-            idx2 = np.argmax(pruned)
+            idx2 = np.argmax(pruned) if len(pruned) > 0 else 0
 
             t = (np.sin(phase[idx2]) + 1.) / 2.
             t = 0.9 * t + 0.1
@@ -221,8 +227,8 @@ class findFaceGetPulse(object):
                 beta * self.gray[y:y + h, x:x + w]
             b = alpha * self.frame_in[y:y + h, x:x + w, 2]
             self.frame_out[y:y + h, x:x + w] = cv2.merge([r,
-                                                          g,
-                                                          b])
+                                                         g,
+                                                         b]) if len(r+g+b) else self.frame_in[y:y + h, x:x + w]
             x1, y1, w1, h1 = self.face_rect
             self.slices = [np.copy(self.frame_out[y1:y1 + h1, x1:x1 + w1, 1])]
             col = (100, 255, 100)
