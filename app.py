@@ -23,7 +23,7 @@ def get_pulse(frame):
     pulse_app.avg_throughput = (pulse_app.avg_throughput * (pulse_app.frame_count - 1) +
                                 throughput) / pulse_app.frame_count
 
-    return {'bpm': None, 'text': 'gathering data...'}
+    return pulse or {'bpm': None, 'text': 'gathering data...'}
 
 
 app = Flask(__name__)

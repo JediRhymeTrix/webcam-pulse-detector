@@ -166,9 +166,9 @@ class findFaceGetPulse(object):
             self.frame_out, "Press 'S' to restart",
                    (10, 50), cv2.FONT_HERSHEY_PLAIN, 1.5, col)
         cv2.putText(self.frame_out, "Press 'D' to toggle data plot",
-                   (10, 75), cv2.FONT_HERSHEY_PLAIN, 1.5, col)
+                    (10, 75), cv2.FONT_HERSHEY_PLAIN, 1.5, col)
         cv2.putText(self.frame_out, "Press 'Esc' to quit",
-                   (10, 100), cv2.FONT_HERSHEY_PLAIN, 1.5, col)
+                    (10, 100), cv2.FONT_HERSHEY_PLAIN, 1.5, col)
 
         forehead1 = self.get_subface_coord(0.5, 0.18, 0.25, 0.15)
         self.draw_rect(forehead1)
@@ -201,8 +201,8 @@ class findFaceGetPulse(object):
             self.fft = np.abs(raw)
             self.freqs = float(self.fps) / L * np.arange(L / 2 + 1)
 
-            freqs = 60. * self.freqs
-            idx = np.where((freqs > 50) & (freqs < 180))
+            freqs = 1380. * self.freqs
+            idx = np.where((freqs > 60) & (freqs < 120))
 
             pruned = self.fft[idx]
             phase = phase[idx]
@@ -212,25 +212,30 @@ class findFaceGetPulse(object):
             self.fft = pruned
             idx2 = np.argmax(pruned) if len(pruned) > 0 else 0
 
-            t = (np.sin(phase[idx2]) + 1.) / 2.
-            t = 0.9 * t + 0.1
-            alpha = t
-            beta = 1 - t
-
-            self.bpm = self.freqs[idx2]
-            self.idx += 1
-
             x, y, w, h = self.get_subface_coord(0.5, 0.18, 0.25, 0.15)
-            r = alpha * self.frame_in[y:y + h, x:x + w, 0]
-            g = alpha * \
-                self.frame_in[y:y + h, x:x + w, 1] + \
-                beta * self.gray[y:y + h, x:x + w]
-            b = alpha * self.frame_in[y:y + h, x:x + w, 2]
-            self.frame_out[y:y + h, x:x + w] = cv2.merge([r,
-                                                         g,
-                                                         b]) if len(r+g+b) else self.frame_in[y:y + h, x:x + w]
-            x1, y1, w1, h1 = self.face_rect
-            self.slices = [np.copy(self.frame_out[y1:y1 + h1, x1:x1 + w1, 1])]
+
+            try:
+                t = (np.sin(phase[idx2]) + 1.) / 2.
+                t = 0.9 * t + 0.1
+                alpha = t
+                beta = 1 - t
+
+                self.bpm = self.freqs[idx2]
+                self.idx += 1
+
+                r = alpha * self.frame_in[y:y + h, x:x + w, 0]
+                g = alpha * \
+                    self.frame_in[y:y + h, x:x + w, 1] + \
+                    beta * self.gray[y:y + h, x:x + w]
+                b = alpha * self.frame_in[y:y + h, x:x + w, 2]
+                self.frame_out[y:y + h, x:x + w] = cv2.merge([r,
+                                                              g,
+                                                              b]) if len(r+g+b) else self.frame_in[y:y + h, x:x + w]
+                x1, y1, w1, h1 = self.face_rect
+                self.slices = [
+                    np.copy(self.frame_out[y1:y1 + h1, x1:x1 + w1, 1])]
+            except Exception as e:
+                print(e)
             col = (100, 255, 100)
             gap = (self.buffer_size - L) / self.fps
             # self.bpms.append(bpm)
@@ -241,6 +246,6 @@ class findFaceGetPulse(object):
                 text = "(estimate: %0.1f bpm)" % (self.bpm)
             tsize = 1
             cv2.putText(self.frame_out, text,
-                       (int(x - w / 2), int(y)), cv2.FONT_HERSHEY_PLAIN, tsize, col)
+                        (int(x - w / 2), int(y)), cv2.FONT_HERSHEY_PLAIN, tsize, col)
 
             return {'bpm': self.bpm, 'text': text}
